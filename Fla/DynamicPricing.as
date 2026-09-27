@@ -184,13 +184,20 @@ class DynamicPricing extends MovieClip {
     public function processEntry(a_entryObject: Object, a_itemInfo: Object): Void {
         this = DynamicPricing.instance;
         var isBuying = a_entryObject.filterFlag > 1024,
+            basePrice:Number = a_itemInfo.value,
             result:Array = processItem(a_entryObject.keywords, a_entryObject.formId, a_itemInfo.value, isBuying);
         a_itemInfo.value = Math.floor(result[0]);
 
         if (result[1]) {
             // call BarterDataSetter.processEntry which applies default barter multipliers
             processor.DPF__processEntry(a_entryObject, a_itemInfo);
-        } else {
+        }
+
+        if (result[2] !== 1) {
+            a_itemInfo.value = compressPriceRange(basePrice, a_itemInfo.value, result[2], isBuying);
+            // BarterDataSetter already processed the uncompressed value, so update the entry again.
+            InventoryDataSetter.prototype.processEntry.call(processor, a_entryObject, a_itemInfo);
+        } else if (!result[1]) {
             // skip BarterDataSetter.processEntry
             InventoryDataSetter.prototype.processEntry.call(processor, a_entryObject, a_itemInfo);
         }
@@ -199,11 +206,20 @@ class DynamicPricing extends MovieClip {
     // override Menu.UpdateItemCardInfo
     function UpdateItemCardInfo(a_updateObj: Object): Void {
         this = DynamicPricing.instance;
-        var result:Array = processItem(itemList.selectedEntry.keywords, a_updateObj.formId, a_updateObj.value, Menu.isViewingVendorItems());
+        var isBuying:Boolean = Menu.isViewingVendorItems(),
+            basePrice:Number = a_updateObj.value,
+            result:Array = processItem(itemList.selectedEntry.keywords, a_updateObj.formId, a_updateObj.value, isBuying);
         a_updateObj.value = Math.floor(result[0]);
         if (result[1]) {
             Menu.DPF__UpdateItemCardInfo(a_updateObj);
-        } else {
+        }
+
+        if (result[2] !== 1) {
+            a_updateObj.value = compressPriceRange(basePrice, a_updateObj.value, result[2], isBuying);
+            // The original handler already displayed the uncompressed value, so update it again.
+            Menu.itemCard.itemInfo = a_updateObj;
+            Menu.bottomBar.updateBarterPerItemInfo(a_updateObj);
+        } else if (!result[1]) {
             // stripped version of Menu.UpdateItemCardInfo which skips applying default barter multipliers
             Menu.itemCard.itemInfo = a_updateObj;
             Menu.bottomBar.updateBarterPerItemInfo(a_updateObj);
@@ -212,15 +228,19 @@ class DynamicPricing extends MovieClip {
 
     function processItem(itemKeywords:Object, formId:Number, price:Number, isBuying:Boolean) : Array {
         if ( (isBuying && itemKeywords[fixedBuyKeyword] === true) || (!isBuying && itemKeywords[fixedSellKeyword] === true) ) {
-            return [price, false];
+            return [price, false, 1];
         }
 
         var total:Number = 1;
         var defaultMults:Boolean = true;
+        var priceRangeCompression:Number = 1;
 
         for (var i = 0; i < data.length; i++) {
             if (doKeywordsMatch(data[i].keywords, itemKeywords)) {
                 if (data[i].defaultMults === false) defaultMults = false;
+                if (data[i].priceRangeCompression !== undefined) {
+                    priceRangeCompression *= data[i].priceRangeCompression;
+                }
                 var mult:Number = isBuying ? data[i].buy : data[i].sell;
                 total += (mult - 1);
             }
@@ -237,8 +257,15 @@ class DynamicPricing extends MovieClip {
 
         return [
             price * total,
-            defaultMults
+            defaultMults,
+            priceRangeCompression
         ];
+    }
+
+    function compressPriceRange(basePrice:Number, calculatedPrice:Number, compression:Number, isBuying:Boolean):Number {
+        var compressedPrice:Number = basePrice + (calculatedPrice - basePrice) * compression;
+        if (isBuying) compressedPrice = Math.max(compressedPrice, 1);
+        return Math.floor(compressedPrice + 0.5);
     }
 
     // check if an item matches any of the keywords specified in the rule
