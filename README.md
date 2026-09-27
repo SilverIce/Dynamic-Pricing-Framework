@@ -1,44 +1,51 @@
 # Dynamic Pricing Framework
 
-## Price multiplier compression
+## Default multiplier compression
 
-Rules may use `priceMultiplierCompression` to compress the final price
-multiplier toward its neutral value of `1.0`:
+Rules may use `defaultMultCompression` to compress Skyrim's default barter
+multiplier toward its neutral value of `1.0`, without weakening Dynamic Pricing
+Framework's own `buyMult` and `sellMult` adjustments:
 
 ```text
-calculated multiplier = DPF multiplier * Skyrim barter multiplier * other multipliers
-compressed multiplier = 1 + (calculated multiplier - 1) * compression
-final price = base price * compressed multiplier
+DPF price = base price * DPF multiplier
+compressed default multiplier = 1 + (Skyrim default multiplier - 1) * compression
+final price = DPF price * compressed default multiplier
 ```
 
-The framework first calculates the price normally, including Dynamic Pricing
-Framework rules and Skyrim's barter multipliers, then applies the compression.
-`0.0` produces a neutral multiplier of `1.0`, `1.0` preserves the calculated
-multiplier, and values between them reduce the effect of all price modifiers.
+The default multiplier is the combined buy or sell multiplier supplied to the
+Barter Menu. It includes Speech, barter perks, Fortify Barter, relevant game
+settings, and mods that alter Skyrim's normal barter calculation. These parts
+are already combined when Dynamic Pricing Framework receives them, so the
+compression cannot target one component separately.
+
+`0.0` produces a neutral default multiplier of `1.0`, `1.0` preserves Skyrim's
+calculated multiplier, and values between them reduce its effect. The setting
+has no effect when the matching rules set `defaultMults` to `false`.
 
 ```json
 [
   {
     "description": "Reduce the effect of barter perks for selected items.",
     "itemKeyword": "MyPriceControlledItem",
-    "priceMultiplierCompression": 0.5
+    "defaultMultCompression": 0.5
   }
 ]
 ```
 
 For example, with a base value of `100`, a DPF multiplier of `1.25`, a Skyrim
-barter multiplier of `3.2`, and a compression of `0.5`:
+default multiplier of `3.2`, and a compression of `0.5`:
 
 ```text
-calculated multiplier = 1.25 * 3.2 = 4.0
-compressed multiplier = 1 + (4.0 - 1) * 0.5 = 2.5
-final price = 100 * 2.5 = 250
+DPF price = 100 * 1.25 = 125
+compressed default multiplier = 1 + (3.2 - 1) * 0.5 = 2.1
+final price = 125 * 2.1 = 262.5, rounded to 263
 ```
 
-A normally calculated multiplier of `0.5` is compressed to `0.75` by the same
-factor, changing a price of `50` to `75` for an item with a base value of `100`.
+A Skyrim default multiplier of `0.5` is compressed to `0.75` by the same factor.
+For a DPF-adjusted price of `100`, the final price therefore changes from `50`
+to `75`.
 
-If several matching rules specify `priceMultiplierCompression`, their values are
+If several matching rules specify `defaultMultCompression`, their values are
 multiplied. For example, two matching values of `0.5` produce an effective
 compression of `0.25`.
 
