@@ -194,7 +194,7 @@ class DynamicPricing extends MovieClip {
         }
 
         if (result[2] !== 1) {
-            a_itemInfo.value = compressPriceRange(basePrice, a_itemInfo.value, result[2], isBuying);
+            a_itemInfo.value = compressPriceMultiplier(basePrice, a_itemInfo.value, result[2], isBuying);
             // BarterDataSetter already processed the uncompressed value, so update the entry again.
             InventoryDataSetter.prototype.processEntry.call(processor, a_entryObject, a_itemInfo);
         } else if (!result[1]) {
@@ -215,7 +215,7 @@ class DynamicPricing extends MovieClip {
         }
 
         if (result[2] !== 1) {
-            a_updateObj.value = compressPriceRange(basePrice, a_updateObj.value, result[2], isBuying);
+            a_updateObj.value = compressPriceMultiplier(basePrice, a_updateObj.value, result[2], isBuying);
             // The original handler already displayed the uncompressed value, so update it again.
             Menu.itemCard.itemInfo = a_updateObj;
             Menu.bottomBar.updateBarterPerItemInfo(a_updateObj);
@@ -233,13 +233,13 @@ class DynamicPricing extends MovieClip {
 
         var total:Number = 1;
         var defaultMults:Boolean = true;
-        var priceRangeCompression:Number = 1;
+        var priceMultiplierCompression:Number = 1;
 
         for (var i = 0; i < data.length; i++) {
             if (doKeywordsMatch(data[i].keywords, itemKeywords)) {
                 if (data[i].defaultMults === false) defaultMults = false;
-                if (data[i].priceRangeCompression !== undefined) {
-                    priceRangeCompression *= data[i].priceRangeCompression;
+                if (data[i].priceMultiplierCompression !== undefined) {
+                    priceMultiplierCompression *= data[i].priceMultiplierCompression;
                 }
                 var mult:Number = isBuying ? data[i].buy : data[i].sell;
                 total += (mult - 1);
@@ -258,11 +258,13 @@ class DynamicPricing extends MovieClip {
         return [
             price * total,
             defaultMults,
-            priceRangeCompression
+            priceMultiplierCompression
         ];
     }
 
-    function compressPriceRange(basePrice:Number, calculatedPrice:Number, compression:Number, isBuying:Boolean):Number {
+    function compressPriceMultiplier(basePrice:Number, calculatedPrice:Number, compression:Number, isBuying:Boolean):Number {
+        // Equivalent to: basePrice * (1 + (calculatedMultiplier - 1) * compression).
+        // This form also works for items whose base price is zero.
         var compressedPrice:Number = basePrice + (calculatedPrice - basePrice) * compression;
         if (isBuying) compressedPrice = Math.max(compressedPrice, 1);
         return Math.floor(compressedPrice + 0.5);

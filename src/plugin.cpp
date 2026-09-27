@@ -20,7 +20,7 @@ struct Rule {
     BGSPerk* conditionPerk;
     float buyMult = 1.0f;
     float sellMult = 1.0f;
-    float priceRangeCompression = 1.0f;
+    float priceMultiplierCompression = 1.0f;
     bool defaultMults = true;
     TESGlobal* buyMultGLOB;
     TESGlobal* sellMultGLOB;
@@ -144,8 +144,8 @@ static void Inject(BSFixedString menuName) {
         ruleData.SetMember("keywords", keywords);
         ruleData.SetMember("buy", rule.buyMultGLOB ? rule.buyMultGLOB->value : rule.buyMult);
         ruleData.SetMember("sell", rule.sellMultGLOB ? rule.sellMultGLOB->value : rule.sellMult);
-        if (rule.priceRangeCompression != 1.0f) {
-            ruleData.SetMember("priceRangeCompression", rule.priceRangeCompression);
+        if (rule.priceMultiplierCompression != 1.0f) {
+            ruleData.SetMember("priceMultiplierCompression", rule.priceMultiplierCompression);
         }
         // if (rule.checkStolen) {
         //     ruleData.SetMember("stolen", rule.stolen);
@@ -314,11 +314,11 @@ static void ParseData(const json& data) {
                 continue;
             }
         }
-        if (item.contains("priceRangeCompression")) {
-            const auto& value = item.at("priceRangeCompression");
+        if (item.contains("priceMultiplierCompression")) {
+            const auto& value = item.at("priceMultiplierCompression");
             if (!value.is_number()) continue;
-            newRule.priceRangeCompression = value.get<float>();
-            if (newRule.priceRangeCompression < 0.0f || newRule.priceRangeCompression > 1.0f) continue;
+            newRule.priceMultiplierCompression = value.get<float>();
+            if (newRule.priceMultiplierCompression < 0.0f || newRule.priceMultiplierCompression > 1.0f) continue;
         }
         // weather default price multipliers should be disabled for this item
         if (item.contains("defaultMults") && item.at("defaultMults").get<bool>() == false) {

@@ -1,25 +1,26 @@
 # Dynamic Pricing Framework
 
-## Price range compression
+## Price multiplier compression
 
-Rules may use `priceRangeCompression` to reduce the effect of every other price
-modifier while preserving the item's base value as the fixed point:
+Rules may use `priceMultiplierCompression` to compress the final price
+multiplier toward its neutral value of `1.0`:
 
 ```text
-compressed price = base price + (calculated price - base price) * compression
+compressed multiplier = 1 + (calculated multiplier - 1) * compression
+final price = base price * compressed multiplier
 ```
 
 The framework first calculates the price normally, including Dynamic Pricing
 Framework rules and Skyrim's barter multipliers, then applies the compression.
-`0.0` always returns the base value, `1.0` preserves the calculated price, and
-values between them compress the price range toward the base value.
+`0.0` produces a neutral multiplier of `1.0`, `1.0` preserves the calculated
+multiplier, and values between them reduce the effect of all price modifiers.
 
 ```json
 [
   {
     "description": "Reduce the effect of barter perks for selected items.",
     "itemKeyword": "MyPriceControlledItem",
-    "priceRangeCompression": 0.5
+    "priceMultiplierCompression": 0.5
   }
 ]
 ```
@@ -27,7 +28,7 @@ values between them compress the price range toward the base value.
 For an item with a base value of `100`, a normally calculated price of `400`
 becomes `250`. A normally calculated price of `50` becomes `75`.
 
-If several matching rules specify `priceRangeCompression`, their values are
+If several matching rules specify `priceMultiplierCompression`, their values are
 multiplied. For example, two matching values of `0.5` produce an effective
 compression of `0.25`.
 
