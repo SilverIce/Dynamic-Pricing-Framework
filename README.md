@@ -6,6 +6,7 @@ Rules may use `priceMultiplierCompression` to compress the final price
 multiplier toward its neutral value of `1.0`:
 
 ```text
+calculated multiplier = DPF multiplier * Skyrim barter multiplier * other multipliers
 compressed multiplier = 1 + (calculated multiplier - 1) * compression
 final price = base price * compressed multiplier
 ```
@@ -25,8 +26,17 @@ multiplier, and values between them reduce the effect of all price modifiers.
 ]
 ```
 
-For an item with a base value of `100`, a normally calculated price of `400`
-becomes `250`. A normally calculated price of `50` becomes `75`.
+For example, with a base value of `100`, a DPF multiplier of `1.25`, a Skyrim
+barter multiplier of `3.2`, and a compression of `0.5`:
+
+```text
+calculated multiplier = 1.25 * 3.2 = 4.0
+compressed multiplier = 1 + (4.0 - 1) * 0.5 = 2.5
+final price = 100 * 2.5 = 250
+```
+
+A normally calculated multiplier of `0.5` is compressed to `0.75` by the same
+factor, changing a price of `50` to `75` for an item with a base value of `100`.
 
 If several matching rules specify `priceMultiplierCompression`, their values are
 multiplied. For example, two matching values of `0.5` produce an effective
